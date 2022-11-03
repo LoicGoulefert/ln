@@ -190,3 +190,32 @@ func (s *OutlineSphere) Paths() Paths {
 	}
 	return Paths{path}
 }
+
+type HSphere struct {
+	// Horizontal stripes sphere
+	Sphere
+	Stripes int
+}
+
+func (s *HSphere) Paths() Paths {
+	var paths Paths
+	offset := 180.0 / s.Stripes
+	for lat := -90 + 5; lat <= 90-5; lat += offset {
+		var path Path
+		for lng := 0; lng <= 360; lng++ {
+			v := LatLngToXYZ(float64(lat), float64(lng), s.Radius).Add(s.Center)
+			path = append(path, v)
+		}
+		paths = append(paths, path)
+	}
+	return paths
+}
+
+func NewHSphere(center Vector, radius float64, stripes int) *HSphere {
+	min := Vector{X: center.X - radius, Y: center.Y - radius, Z: center.Z - radius}
+	max := Vector{X: center.X + radius, Y: center.Y + radius, Z: center.Z + radius}
+	box := Box{Min: min, Max: max}
+	sphere := Sphere{Center: center, Radius: radius, Box: box}
+
+	return &HSphere{sphere, stripes}
+}
