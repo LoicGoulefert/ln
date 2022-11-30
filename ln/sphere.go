@@ -219,3 +219,43 @@ func NewHSphere(center Vector, radius float64, stripes int) *HSphere {
 
 	return &HSphere{sphere, stripes}
 }
+
+type ShadedSphere struct {
+	Sphere
+	light, eye, up   Vector
+	density, pathLen float64
+}
+
+func NewShadedSphere(center, light, eye, up Vector, radius, density, pathLen float64) *ShadedSphere {
+	sphere := NewSphere(center, radius)
+	return &ShadedSphere{*sphere, light, eye, up, density, pathLen}
+}
+
+func (s *ShadedSphere) Paths() Paths {
+	var paths Paths
+
+	lo := s.light.Sub(s.Center).Normalize()
+	angleStep := 0.1
+	maxSteps := s.pathLen
+	numSamples := Remap(s.density, 0, 1, 100, 1000) * s.Radius * s.Radius
+
+	for i := 0; i < int(numSamples); i++ {
+		var path Path
+		p := RandomUnitVector().MulScalar(s.Radius)
+		rotAxis := lo.Cross(p).Normalize()
+		// Choose arc length based on point and light normal
+		pNorm := lo.Dot(p.Normalize())
+		NSteps := maxSteps - Remap(pNorm, -1, 1, 5, maxSteps)
+		for j := 0; j < int(NSteps); j++ {
+			rotM := Rotate(rotAxis, Radians(angleStep*float64(j)))
+			newPoint := rotM.MulDirection(p).Normalize().MulScalar(s.Radius).Add(s.Center)
+			path = append(path, newPoint)
+		}
+		paths = append(paths, path)
+	}
+
+	outline := NewOutlineSphere(s.eye, s.up, s.Center, s.Radius)
+	paths = append(paths, outline.Paths()[0])
+
+	return paths
+}
