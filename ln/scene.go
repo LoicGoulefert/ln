@@ -23,10 +23,17 @@ func (s *Scene) Intersect(r Ray) Hit {
 }
 
 func (s *Scene) Visible(eye, point Vector) bool {
-	v := eye.Sub(point)
+	// Perspective
+	// v := eye.Sub(point)
+	// r := Ray{point, v.Normalize()}
+	// hit := s.Intersect(r)
+	// return hit.T >= v.Length()
+
+	// Orthographic
+	v := eye
 	r := Ray{point, v.Normalize()}
 	hit := s.Intersect(r)
-	return hit.T >= v.Length()
+	return !hit.Ok()
 }
 
 func (s *Scene) Paths() Paths {
