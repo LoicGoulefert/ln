@@ -1,8 +1,16 @@
 package ln
 
+type Projection int
+
+const (
+	PERSPECTIVE  Projection = iota
+	ORTHOGRAPHIC Projection = iota
+)
+
 type Scene struct {
 	Shapes []Shape
 	Tree   *Tree
+	Proj   Projection
 }
 
 func (s *Scene) Compile() {
@@ -23,17 +31,18 @@ func (s *Scene) Intersect(r Ray) Hit {
 }
 
 func (s *Scene) Visible(eye, point Vector) bool {
-	// Perspective
-	// v := eye.Sub(point)
-	// r := Ray{point, v.Normalize()}
-	// hit := s.Intersect(r)
-	// return hit.T >= v.Length()
-
-	// Orthographic
-	v := eye
-	r := Ray{point, v.Normalize()}
-	hit := s.Intersect(r)
-	return !hit.Ok()
+	if s.Proj == PERSPECTIVE {
+		v := eye.Sub(point)
+		r := Ray{point, v.Normalize()}
+		hit := s.Intersect(r)
+		return hit.T >= v.Length()
+	} else {
+		// Orthographic
+		v := eye
+		r := Ray{point, v.Normalize()}
+		hit := s.Intersect(r)
+		return !hit.Ok()
+	}
 }
 
 func (s *Scene) Paths() Paths {
@@ -47,7 +56,11 @@ func (s *Scene) Paths() Paths {
 func (s *Scene) Render(eye, center, up Vector, width, height, fovy, near, far, step float64) Paths {
 	aspect := width / height
 	matrix := LookAt(eye, center, up)
-	matrix = matrix.Perspective(fovy, aspect, near, far)
+	if s.Proj == PERSPECTIVE {
+		matrix = matrix.Perspective(fovy, aspect, near, far)
+	} else {
+		matrix = matrix.Orthographic(-1, 1, -1, 1, near, far)
+	}
 	return s.RenderWithMatrix(matrix, eye, width, height, step)
 }
 
